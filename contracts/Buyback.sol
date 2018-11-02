@@ -37,8 +37,10 @@ contract BuyBack {
     }
 
     event Withdraw(
-         address indexed token,
-         uint amount
+        address indexed sellToken,
+        address indexed buyToken,
+        uint balance,
+        uint auctionIndex
     );
 
     event Deposit(
@@ -59,13 +61,6 @@ contract BuyBack {
         address indexed tokenAddress,
         address burnAddress,
         uint amount
-    );
-
-    event BuyBack (
-        address indexed from,
-        address indexed to,
-        uint amount,
-        uint token
     );
        
     /**
@@ -143,7 +138,6 @@ contract BuyBack {
      */
     function approve() public {
         // approve the dx proxy contract to trade on my behalf
-
         // _sellToken
         for( uint i = 0; i < auctionIndexes.length; i++ ) {
             dx.postSellOrder(sellToken, buyToken, auctionIndexes[i], auction[auctionIndexes[i]]);
@@ -163,13 +157,13 @@ contract BuyBack {
         for(uint i = 0; i < auctionIndexes.length; i++) {
             (balance, ) = dx.claimSellerFunds(sellToken, buyToken, this, auctionIndexes[i]);
             if(shouldBurnToken == true){
-                
                 if( burnAddress != address(0) ){
                     burnTokensWithAddress(buyToken, burnAddress, balance);
                 }
 
                 burnTokens(buyToken, balance);
             }
+            emit Withdraw(sellToken, buyToken, balance, auctionIndexes[i]);
         }
     }
 
@@ -180,8 +174,8 @@ contract BuyBack {
      */
     function burnTokens(address _token, uint _amount) public {
         // transfer the tokens to address(0)
-        require(_amount > 0);
-        require(Token(_token).transferFrom(this, address(0), _amount));
+        require(_amount > 0, "Amount should be greater than 0");
+        require(Token(_token).transferFrom(this, address(0), _amount), "Failed transfer");
         emit Burn(
             _token,
             address(0),
@@ -205,7 +199,5 @@ contract BuyBack {
             _amount
         );
     }
-
-
 
 }
