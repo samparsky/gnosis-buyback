@@ -57,6 +57,7 @@ contract BuyBack {
 
     event Burn (
         address indexed tokenAddress,
+        address burnAddress,
         uint amount
     );
 
@@ -133,14 +134,13 @@ contract BuyBack {
         return amount;
     }
 
-     /**
+    /**
      * @notice approve trading
      * @param token Address of the deposited token 
      * @param _sellToken Address of the polytoken
      * @param _burn Should burn the token after buy back success
      * @param 
      */
-
     function approve() public {
         // approve the dx proxy contract to trade on my behalf
 
@@ -171,20 +171,6 @@ contract BuyBack {
         }
     }
 
-    /**
-     * @notice approve trading
-     * @param token Address of the deposited token 
-     * @param _sellToken Address of the polytoken
-     * @param _burn Should burn the token after buy back success
-     * @param 
-     */
-    function claimAndBurn() public {
-
-        for(i = 0; i < auctionIndexes.length; i++) {
-            dx.claimSellerFunds( sellToken, buyToken, this, auctionIndexes[i]);
-        }
-
-    }
     function transfer() public {
         // deposit would allow sell orders
         // with token pair to the 
@@ -201,6 +187,7 @@ contract BuyBack {
         require(Token(_token).transferFrom(this, address(0), _amount));
         emit Burn(
             _token,
+            address(0),
             _amount
         );
     }
@@ -213,10 +200,11 @@ contract BuyBack {
      */
     function burnTokensWithAddress(address _token, address _burnAddress, uint _amount) public {
         // transfer the tokens to address(0)
-        require(amount > 0);
-        require(Token(token).transferFrom(this, _burnAddress, amount));
+        require(amount > 0, "Amount required to be greater than 0");
+        require(Token(token).transferFrom(this, _burnAddress, amount), "Failed to transfer to burn address");
         emit Burn(
             _token,
+            _burnAddress,
             _amount
         );
     }
