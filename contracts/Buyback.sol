@@ -19,6 +19,7 @@ contract BuyBack {
 
     // mapping of the sell token to 
     mapping (address => uint) public balances;
+    mapping (address => uint) public 
 
     uint256[] auctionIDs;
 
@@ -42,6 +43,11 @@ contract BuyBack {
         address indexed tokenAddress,
         uint amount
     );
+
+    event Burn (
+        address indexed tokenAddress,
+        uint amount
+    )
 
     event BuyBack (
         address indexed from,
@@ -69,6 +75,13 @@ contract BuyBack {
         dx = _dx;
     }
 
+    /**
+     * @notice deposit
+     * @param token Address of the deposited token 
+     * @param _sellToken Address of the polytoken
+     * @param _burn Should burn the token after buy back success
+     * @param 
+     */
     function deposit (address token, uint amount) public onlyOwner returns (uint) {
         require(amount > 0);
         require(Token(token).transferFrom(msg.sender, this, amount));
@@ -91,9 +104,37 @@ contract BuyBack {
 
     }
 
-    function burnTokens() {
-
-
+    /**
+     * @notice burnTokens
+     * @param token Address of the  token
+     * @param amount Amount of tokens to burn
+     */
+    function burnTokens(address _token, uint _amount) {
+        // transfer the tokens to address(0)
+        require(_amount > 0);
+        require(Token(_token).transferFrom(this, address(0), _amount));
+        emit Burn(
+            _token,
+            _amount
+        );
     }
+
+    /**
+     * @notice burnTokensWithAddress
+     * @param _token Address of the  token
+     * @param _amount Amount of tokens to burn
+     * @param _burnAddress Address to send burn tokens
+     */
+    function burnTokensWithAddress(address _token, address _burnAddress, uint _amount,) {
+        // transfer the tokens to address(0)
+        require(amount > 0);
+        require(Token(token).transferFrom(this, _burnAddress, amount));
+        emit Burn(
+            token,
+            amount
+        );
+    }
+
+
 
 }
