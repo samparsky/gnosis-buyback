@@ -16,13 +16,14 @@ contract BuyBack {
     // SellToken the token that is sold
     address public sellToken;
     address public buyToken;
+    address public burnAddress;
 
     // mapping of the sell token to 
     mapping (address => uint) public balances;
-    mapping (address => uint) public 
+    // mapping (address => uint) public 
 
-    uint256[] auctionIDs;
-
+    // This is a mapping of auction id to amount
+    mapping(uint => uint) public auction;
 
     bool shouldBurnToken;
 
@@ -39,15 +40,24 @@ contract BuyBack {
          uint amount
     );
 
-    event Deposit (
+    event Deposit(
         address indexed tokenAddress,
         uint amount
+    );
+
+    event ModifyAuction(
+        uint auctionIndex,
+        uint amount
+    );
+
+    event ModifyBurnAddress(
+        address burnAddress
     );
 
     event Burn (
         address indexed tokenAddress,
         uint amount
-    )
+    );
 
     event BuyBack (
         address indexed from,
@@ -63,15 +73,44 @@ contract BuyBack {
      * @param _burn Should burn the token after buy back success
      * @param 
      */
-    constructor(address _buyToken, address _sellToken, bool _burn, uint256 _amount) public {
+    constructor(address _buyToken, address _sellToken, bool _burn, uint[] _auctionIndexs, uint[] _auctionAmounts) public {
         sellToken = _sellToken;
         buyToken = _buyToken;
-        amount = _amount;
         shouldBurnToken = _burn;
-        (pricetNum, priceDen) = dx.getPriceOfTokenInLastAuction(token);
+
+        require(_auctionIndexs.length == _auctionAmounts.length, "Invalid auction amount and index");
+        
+        // map the auction ids to the auction amount
+        for(i=0; i < _auctionIndexs.length; i++ ){
+            auction[_auctionIndexs[i]] = _auctionAmounts[i];
+        }
+
+        // (pricetNum, priceDen) = dx.getPriceOfTokenInLastAuction(token);
     }
 
-    function updateDutchExchange (DutchExchange _dx) external onlyOwner {
+    function modifyAuctionsMulti(uint[] _auctionIndexs, uint[] _auctionAmounts) external onlyOwner  {
+        require(_auctionIndexs.length == _auctionAmounts.length, "Invalid auction amount and index");
+        for(i = 0; i < _auctionIndexs.length; i++){
+            modifyAuction(_auctionIndexs[i], _auctionAmounts[i]);
+        }
+    }
+
+    function modifyAuction(uint _auctionIndex, uint _auctionAmount) public onlyOwner {
+        // require(_auctionInd)
+        auction[_auctionIndex] = _auctionAmount;
+        emit ModifyAuction(_auctionIndex, _auctionAmount);
+    }
+
+    function modifyBurn(bool _burn) external {
+        shouldBurnToken = _burn;
+    }
+
+    function modifyBurnAddress(address _burnAddress) public {
+        burnAdress = _burnAddress;
+        emit ModifyBurnAddress(_burnAddress);
+    }
+
+    function updateDutchExchange(DutchExchange _dx) external onlyOwner {
         dx = _dx;
     }
 
@@ -82,8 +121,9 @@ contract BuyBack {
      * @param _burn Should burn the token after buy back success
      * @param 
      */
-    function deposit (address token, uint amount) public onlyOwner returns (uint) {
+    function deposit(address _token, uint _amount) public onlyOwner returns (uint) {
         require(amount > 0);
+        require(_token == sellToken, "Only alloweds");
         require(Token(token).transferFrom(msg.sender, this, amount));
         
         balances[token] += amount;
@@ -106,8 +146,8 @@ contract BuyBack {
 
     /**
      * @notice burnTokens
-     * @param token Address of the  token
-     * @param amount Amount of tokens to burn
+     * @param _token Address of the  token
+     * @param _amount Amount of tokens to burn
      */
     function burnTokens(address _token, uint _amount) {
         // transfer the tokens to address(0)
@@ -130,8 +170,8 @@ contract BuyBack {
         require(amount > 0);
         require(Token(token).transferFrom(this, _burnAddress, amount));
         emit Burn(
-            token,
-            amount
+            _token,
+            _amount
         );
     }
 
