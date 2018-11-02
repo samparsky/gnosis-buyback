@@ -23,6 +23,7 @@ contract BuyBack {
     // mapping (address => uint) public 
 
     // This is a mapping of auction id to amount
+    uint[] auctionIndexes;
     mapping(uint => uint) public auction;
 
     bool shouldBurnToken;
@@ -132,16 +133,61 @@ contract BuyBack {
         return amount;
     }
 
-    function _approve() {
-        _sellToken
+     /**
+     * @notice approve trading
+     * @param token Address of the deposited token 
+     * @param _sellToken Address of the polytoken
+     * @param _burn Should burn the token after buy back success
+     * @param 
+     */
+
+    function approve() public {
+        // approve the dx proxy contract to trade on my behalf
+
+        // _sellToken
+        for( i = 0; i < auctionIndexes.length; i++ ) {
+            dx.postSellOrder(sellToken, buyToken, auctionIndexes[i], auction[auctionIndexex[i]]);
+        }
     }
 
-    function transfer() {
+    /**
+     * @notice approve trading
+     * @param token Address of the deposited token 
+     * @param _sellToken Address of the polytoken
+     * @param _burn Should burn the token after buy back success
+     * @param 
+     */
+    function claim() public {
+        for(i = 0; i < auctionIndexes.length; i++) {
+            (balance, frtsIssued) = dx.claimSellerFunds(sellToken, buyToken, this, auctionIndexes[i]);
+            if(shouldBurnToken == true){
+                
+                if( burnAddress != address(0) ){
+                    burnTokensWithAddress(buyToken, burnAddress, balance);
+                }
+
+                burnTokens(buyToken, balance);
+            }
+        }
+    }
+
+    /**
+     * @notice approve trading
+     * @param token Address of the deposited token 
+     * @param _sellToken Address of the polytoken
+     * @param _burn Should burn the token after buy back success
+     * @param 
+     */
+    function claimAndBurn() public {
+
+        for(i = 0; i < auctionIndexes.length; i++) {
+            dx.claimSellerFunds( sellToken, buyToken, this, auctionIndexes[i]);
+        }
+
+    }
+    function transfer() public {
         // deposit would allow sell orders
         // with token pair to the 
-        dx.addTokenPair()
-
-
     }
 
     /**
@@ -149,7 +195,7 @@ contract BuyBack {
      * @param _token Address of the  token
      * @param _amount Amount of tokens to burn
      */
-    function burnTokens(address _token, uint _amount) {
+    function burnTokens(address _token, uint _amount) public {
         // transfer the tokens to address(0)
         require(_amount > 0);
         require(Token(_token).transferFrom(this, address(0), _amount));
@@ -165,7 +211,7 @@ contract BuyBack {
      * @param _amount Amount of tokens to burn
      * @param _burnAddress Address to send burn tokens
      */
-    function burnTokensWithAddress(address _token, address _burnAddress, uint _amount,) {
+    function burnTokensWithAddress(address _token, address _burnAddress, uint _amount) public {
         // transfer the tokens to address(0)
         require(amount > 0);
         require(Token(token).transferFrom(this, _burnAddress, amount));
