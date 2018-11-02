@@ -83,7 +83,7 @@ contract BuyBack {
         require(_auctionIndexs.length == _auctionAmounts.length, "Invalid auction amount and index");
         
         // map the auction ids to the auction amount
-        for(i=0; i < _auctionIndexs.length; i++ ){
+        for(uint i = 0; i < _auctionIndexs.length; i++ ){
             auction[_auctionIndexs[i]] = _auctionAmounts[i];
         }
 
@@ -92,7 +92,7 @@ contract BuyBack {
 
     function modifyAuctionsMulti(uint[] _auctionIndexs, uint[] _auctionAmounts) external onlyOwner  {
         require(_auctionIndexs.length == _auctionAmounts.length, "Invalid auction amount and index");
-        for(i = 0; i < _auctionIndexs.length; i++){
+        for(uint i = 0; i < _auctionIndexs.length; i++){
             modifyAuction(_auctionIndexs[i], _auctionAmounts[i]);
         }
     }
@@ -108,7 +108,7 @@ contract BuyBack {
     }
 
     function modifyBurnAddress(address _burnAddress) public {
-        burnAdress = _burnAddress;
+        burnAddress = _burnAddress;
         emit ModifyBurnAddress(_burnAddress);
     }
 
@@ -124,14 +124,14 @@ contract BuyBack {
      * @param 
      */
     function deposit(address _token, uint _amount) public onlyOwner returns (uint) {
-        require(amount > 0);
+        require(_amount > 0, "Amount must be greater than 0");
         require(_token == sellToken, "Only alloweds");
-        require(Token(token).transferFrom(msg.sender, this, amount));
+        require(Token(_token).transferFrom(msg.sender, this, _amount), "Transfer not successful");
         
-        balances[token] += amount;
-        emit Deposit(token, amount);
+        balances[_token] += _amount;
+        emit Deposit(_token, _amount);
 
-        return amount;
+        return _amount;
     }
 
     /**
@@ -145,8 +145,8 @@ contract BuyBack {
         // approve the dx proxy contract to trade on my behalf
 
         // _sellToken
-        for( i = 0; i < auctionIndexes.length; i++ ) {
-            dx.postSellOrder(sellToken, buyToken, auctionIndexes[i], auction[auctionIndexex[i]]);
+        for( uint i = 0; i < auctionIndexes.length; i++ ) {
+            dx.postSellOrder(sellToken, buyToken, auctionIndexes[i], auction[auctionIndexes[i]]);
         }
     }
 
@@ -158,8 +158,10 @@ contract BuyBack {
      * @param 
      */
     function claim() public {
-        for(i = 0; i < auctionIndexes.length; i++) {
-            (balance, frtsIssued) = dx.claimSellerFunds(sellToken, buyToken, this, auctionIndexes[i]);
+        uint balance;
+
+        for(uint i = 0; i < auctionIndexes.length; i++) {
+            (balance, ) = dx.claimSellerFunds(sellToken, buyToken, this, auctionIndexes[i]);
             if(shouldBurnToken == true){
                 
                 if( burnAddress != address(0) ){
@@ -169,11 +171,6 @@ contract BuyBack {
                 burnTokens(buyToken, balance);
             }
         }
-    }
-
-    function transfer() public {
-        // deposit would allow sell orders
-        // with token pair to the 
     }
 
     /**
@@ -200,8 +197,8 @@ contract BuyBack {
      */
     function burnTokensWithAddress(address _token, address _burnAddress, uint _amount) public {
         // transfer the tokens to address(0)
-        require(amount > 0, "Amount required to be greater than 0");
-        require(Token(token).transferFrom(this, _burnAddress, amount), "Failed to transfer to burn address");
+        require(_amount > 0, "Amount required to be greater than 0");
+        require(Token(_token).transferFrom(this, _burnAddress, _amount), "Failed to transfer to burn address");
         emit Burn(
             _token,
             _burnAddress,
