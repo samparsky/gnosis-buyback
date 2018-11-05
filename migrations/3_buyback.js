@@ -1,4 +1,4 @@
-const Buyback = artifacts.require("Buyback.sol");
+const Buyback = artifacts.require("Buyback");
 const DutchExchangeProxy = artifacts.require("DutchExchangeProxy")
 const EtherToken = artifacts.require("EtherToken")
 const GNOToken = artifacts.require("TokenGNO")
@@ -16,6 +16,7 @@ module.exports = function(deployer, network, accounts) {
     }).then(() => {
       gnoToken = GNOToken.deployed()
     }).then(() => {
+      console.log('faking it')
       deployer.deploy(Buyback, dxProxy.address, gnoToken.address, etherToken.address, true, [1,2,3], [1e18, 1e18, 1e18], {from: BuybackOwnerAccount}).then(()=>{})
     })
 

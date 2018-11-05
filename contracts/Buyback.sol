@@ -4,15 +4,9 @@ import "@gnosis.pm/util-contracts/contracts/Token.sol";
 import "@gnosis.pm/dx-contracts/contracts/DutchExchange.sol";
 import "@gnosis.pm/dx-contracts/contracts/Oracle/PriceOracleInterface.sol";
 
-/**
-* Set maximum an address can buy
-* approve and allow
-*/
-
 contract BuyBack {
 
     address public owner;
-
     // SellToken the token that is sold
     address public sellToken;
     address public buyToken;
@@ -77,6 +71,7 @@ contract BuyBack {
      * @param _auctionAmounts Auction amount to fill in auction index
      */
     function BuyBack(address _dx, address _buyToken, address _sellToken, bool _burn, uint[] _auctionIndexes, uint[] _auctionAmounts) public {
+        require(address(_dx) != address(0));
         require(_auctionIndexes.length == _auctionAmounts.length);
 
         dx = DutchExchange(_dx);
@@ -84,9 +79,10 @@ contract BuyBack {
         buyToken = _buyToken;
         shouldBurnToken = _burn;
         auctionIndexes = _auctionIndexes;
+        owner = msg.sender;
         
         // map the auction ids to the auction amount
-        for(uint i = 0; i < _auctionIndexes.length; i++ ){
+        for(uint i = 0; i < _auctionIndexes.length; i++){
             auction[_auctionIndexes[i]] = _auctionAmounts[i];
         }
     }
@@ -195,7 +191,6 @@ contract BuyBack {
 
     /**
      * @notice approve trading
-
      */
     function claim() public {
         uint balance;

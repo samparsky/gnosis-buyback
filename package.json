@@ -9,7 +9,8 @@
   "dependencies": {
     "@gnosis.pm/dx-contracts": "^1.0.1",
     "truffle-contract": "^3.0.6",
-    "truffle-hdwallet-provider": "0.0.5"
+    "truffle-hdwallet-provider": "0.0.5",
+    "web3": "^1.0.0-beta.36"
   },
   "devDependencies": {
     "eslint-config-standard": "^12.0.0",
