@@ -76,20 +76,19 @@ contract BuyBack {
      * @param _auctionIndexes Auction index the to participate 
      * @param _auctionAmounts Auction amount to fill in auction index
      */
-    function BuyBack(address _buyToken, address _sellToken, bool _burn, uint[] _auctionIndexes, uint[] _auctionAmounts) public {
+    function BuyBack(address _dx, address _buyToken, address _sellToken, bool _burn, uint[] _auctionIndexes, uint[] _auctionAmounts) public {
+        require(_auctionIndexes.length == _auctionAmounts.length);
+
+        dx = DutchExchange(_dx);
         sellToken = _sellToken;
         buyToken = _buyToken;
         shouldBurnToken = _burn;
         auctionIndexes = _auctionIndexes;
-
-        require(_auctionIndexes.length == _auctionAmounts.length);
         
         // map the auction ids to the auction amount
         for(uint i = 0; i < _auctionIndexes.length; i++ ){
             auction[_auctionIndexes[i]] = _auctionAmounts[i];
         }
-
-        // (pricetNum, priceDen) = dx.getPriceOfTokenInLastAuction(token);
     }
     
     /**
