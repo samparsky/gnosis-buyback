@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.21;
 
 import "@gnosis.pm/util-contracts/contracts/Token.sol";
 import "@gnosis.pm/dx-contracts/contracts/DutchExchange.sol";
@@ -62,46 +62,102 @@ contract BuyBack {
         address burnAddress,
         uint amount
     );
+    
+    event DeleteAuction(
+        uint auctionIndex,
+        uint amount
+    );
        
     /**
-     * @notice Constructor
+     * @notice Buyback
      * @param _buyToken Address of the security token
      * @param _sellToken Address of the polytoken
      * @param _burn Should burn the token after buy back success
-     * @param 
+     * @param _auctionIndexes Auction index the to participate 
+     * @param _auctionAmounts Auction amount to fill in auction index
      */
-    constructor(address _buyToken, address _sellToken, bool _burn, uint[] _auctionIndexs, uint[] _auctionAmounts) public {
+    function BuyBack(address _buyToken, address _sellToken, bool _burn, uint[] _auctionIndexes, uint[] _auctionAmounts) public {
         sellToken = _sellToken;
         buyToken = _buyToken;
         shouldBurnToken = _burn;
+        auctionIndexes = _auctionIndexes;
 
-        require(_auctionIndexs.length == _auctionAmounts.length, "Invalid auction amount and index");
+        require(_auctionIndexes.length == _auctionAmounts.length);
         
         // map the auction ids to the auction amount
-        for(uint i = 0; i < _auctionIndexs.length; i++ ){
-            auction[_auctionIndexs[i]] = _auctionAmounts[i];
+        for(uint i = 0; i < _auctionIndexes.length; i++ ){
+            auction[_auctionIndexes[i]] = _auctionAmounts[i];
         }
 
         // (pricetNum, priceDen) = dx.getPriceOfTokenInLastAuction(token);
     }
-
-    function modifyAuctionsMulti(uint[] _auctionIndexs, uint[] _auctionAmounts) external onlyOwner  {
-        require(_auctionIndexs.length == _auctionAmounts.length, "Invalid auction amount and index");
-        for(uint i = 0; i < _auctionIndexs.length; i++){
-            modifyAuction(_auctionIndexs[i], _auctionAmounts[i]);
+    
+    /**
+     * @notice modifyAuctionsMulti modify the amount for multiple auction index
+     * @param _auctionIndexes Auction index the to participate 
+     * @param _auctionAmounts Auction amount to fill in auction index
+     */
+    function modifyAuctionsMulti(uint[] _auctionIndexes, uint[] _auctionAmounts) external onlyOwner  {
+        require(_auctionIndexes.length == _auctionAmounts.length);
+        for(uint i = 0; i < _auctionIndexes.length; i++){
+            modifyAuction(_auctionIndexes[i], _auctionAmounts[i]);
         }
     }
-
+    
+    /**
+     * @notice modifyAuctions modify the amount for an auction index
+     * @param _auctionIndex Auction index the to participate 
+     * @param _auctionAmount Auction amount to fill in auction index
+     */
     function modifyAuction(uint _auctionIndex, uint _auctionAmount) public onlyOwner {
         // require(_auctionInd)
         auction[_auctionIndex] = _auctionAmount;
         emit ModifyAuction(_auctionIndex, _auctionAmount);
     }
-
+    
+    /**
+     * @notice deleteAuction modify the amount for an auction index
+     * @param _auctionIndex Auction index the to participate 
+     */
+    function deleteAuction(uint _auctionIndex) public onlyOwner {
+        require(auction[_auctionIndex] > 0);
+        uint[] newAuctionIndexes;
+        for(uint i = 0; i < auctionIndexes.length; i++){
+            if(auctionIndexes[i] == _auctionIndex){
+                continue;
+            }
+            newAuctionIndexes[i] = auctionIndexes[i];
+        }
+        auctionIndexes = newAuctionIndexes;
+        uint auctionAmount = auction[_auctionIndex];
+        delete auction[_auctionIndex];
+        emit DeleteAuction(_auctionIndex, auctionAmount);
+    }
+    
+    
+    /**
+     * @notice deleteAuctions delete an Auction
+     * @param _auctionIndexes Auction index the to participate 
+     */
+    function deleteAuctions(uint[] _auctionIndexes) public onlyOwner {
+        require(_auctionIndexes.length > 0);
+        for(uint i = 0; i < _auctionIndexes.length; i++) {
+            deleteAuction(_auctionIndexes[i]); 
+        }
+    }
+    
+    /**
+     * @notice modifyBurn should burn the bought tokens
+     * @param _burn to either burn or not burn i.e. True or false
+     */
     function modifyBurn(bool _burn) external {
         shouldBurnToken = _burn;
     }
-
+    
+    /**
+     * @notice modifyBurnAddress modify address burnt tokens should be sent to
+     * @param _burnAddress burn address
+     */
     function modifyBurnAddress(address _burnAddress) public {
         burnAddress = _burnAddress;
         emit ModifyBurnAddress(_burnAddress);
@@ -113,15 +169,13 @@ contract BuyBack {
 
     /**
      * @notice deposit
-     * @param token Address of the deposited token 
-     * @param _sellToken Address of the polytoken
-     * @param _burn Should burn the token after buy back success
-     * @param 
+     * @param _token Address of the deposited token 
+     * @param _amount Amount of tokens deposited 10^18
      */
     function deposit(address _token, uint _amount) public onlyOwner returns (uint) {
-        require(_amount > 0, "Amount must be greater than 0");
-        require(_token == sellToken, "Only alloweds");
-        require(Token(_token).transferFrom(msg.sender, this, _amount), "Transfer not successful");
+        require(_amount > 0);
+        require(_token == sellToken);
+        require(Token(_token).transferFrom(msg.sender, this, _amount));
         
         balances[_token] += _amount;
         emit Deposit(_token, _amount);
@@ -131,10 +185,6 @@ contract BuyBack {
 
     /**
      * @notice approve trading
-     * @param token Address of the deposited token 
-     * @param _sellToken Address of the polytoken
-     * @param _burn Should burn the token after buy back success
-     * @param 
      */
     function approve() public {
         // approve the dx proxy contract to trade on my behalf
@@ -146,21 +196,16 @@ contract BuyBack {
 
     /**
      * @notice approve trading
-     * @param token Address of the deposited token 
-     * @param _sellToken Address of the polytoken
-     * @param _burn Should burn the token after buy back success
-     * @param 
+
      */
     function claim() public {
         uint balance;
-
         for(uint i = 0; i < auctionIndexes.length; i++) {
             (balance, ) = dx.claimSellerFunds(sellToken, buyToken, this, auctionIndexes[i]);
             if(shouldBurnToken == true){
                 if( burnAddress != address(0) ){
                     burnTokensWithAddress(buyToken, burnAddress, balance);
                 }
-
                 burnTokens(buyToken, balance);
             }
             emit Withdraw(sellToken, buyToken, balance, auctionIndexes[i]);
@@ -174,8 +219,8 @@ contract BuyBack {
      */
     function burnTokens(address _token, uint _amount) public {
         // transfer the tokens to address(0)
-        require(_amount > 0, "Amount should be greater than 0");
-        require(Token(_token).transferFrom(this, address(0), _amount), "Failed transfer");
+        require(_amount > 0);
+        require(Token(_token).transferFrom(this, address(0), _amount));
         emit Burn(
             _token,
             address(0),
@@ -186,18 +231,17 @@ contract BuyBack {
     /**
      * @notice burnTokensWithAddress
      * @param _token Address of the  token
-     * @param _amount Amount of tokens to burn
      * @param _burnAddress Address to send burn tokens
+     * @param _amount Amount of tokens to burn
      */
     function burnTokensWithAddress(address _token, address _burnAddress, uint _amount) public {
         // transfer the tokens to address(0)
-        require(_amount > 0, "Amount required to be greater than 0");
-        require(Token(_token).transferFrom(this, _burnAddress, _amount), "Failed to transfer to burn address");
+        require(_amount > 0);
+        require(Token(_token).transferFrom(this, _burnAddress, _amount));
         emit Burn(
             _token,
             _burnAddress,
             _amount
         );
     }
-
 }

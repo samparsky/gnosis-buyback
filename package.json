@@ -9,7 +9,7 @@
   "dependencies": {
     "@gnosis.pm/dx-contracts": "^1.0.7",
     "eslint-config-standard": "^12.0.0",
-    "solc": "^0.4.25",
+    "solc": "^0.4.21",
     "truffle": "^4.1.14",
     "truffle-contract": "^3.0.6",
     "truffle-hdwallet-provider-privkey": "^0.3.0",
@@ -18,7 +18,6 @@
   "devDependencies": {
     "ganache-cli": "^6.1.8",
     "solidity-coverage": "^0.5.11",
-    "solidity-docgen": "^0.1.0",
     "solium": "^1.1.8"
   },
   "scripts": {
@@ -28,7 +27,7 @@
     "type": "git",
     "url": "git+https://github.com/samparsky/gnosis-buyback.git"
   },
-  "author": "",
+  "author": "Omidiora Samuel <samparsky@gmail.com> (https://github.com/samparsky)",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/samparsky/gnosis-buyback/issues"
