@@ -4,7 +4,7 @@
   "description": "",
   "main": "truffle.js",
   "directories": {
-    "test": "test"
+    "test": "truffle test test/buyback.js"
   },
   "dependencies": {
     "@gnosis.pm/dx-contracts": "^1.0.1",
