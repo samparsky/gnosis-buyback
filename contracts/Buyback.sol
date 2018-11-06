@@ -240,13 +240,31 @@ contract BuyBack {
     }
 
     /**
+     * @notice approve dutchx contract
+     */
+    function approveDutchX(uint amount) internal {
+        require(Token(sellToken).approve(dx, amount));
+    }
+
+    /**
+    *@notice depsoit to dutchx contract
+     */
+    function depositDutchx(uint amount) internal {
+        uint balance = dx.deposit(sellToken, amount);
+        require(balance >= amount);
+    }
+
+    /**
      * @notice approve trading
      */
-    function approve() public {
+    function postOrder() public {
         // approve the dx proxy contract to trade on my behalf
         // _sellToken
         for( uint i = 0; i < auctionIndexes.length; i++ ) {
-            dx.postSellOrder(sellToken, buyToken, auctionIndexes[i], auction[auctionIndexes[i]]);
+            uint amount = auction[auctionIndexes[i]];
+            approveDutchX(amount);
+            depositDutchx(amount);
+            dx.postSellOrder(sellToken, buyToken, auctionIndexes[i], amount);
         }
     }
 
