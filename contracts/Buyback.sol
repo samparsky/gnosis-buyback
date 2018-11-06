@@ -158,7 +158,7 @@ contract BuyBack {
     }
     
     /**
-     * @notice deleteAuction modify the amount for an auction index
+     * @notice deleteAuction
      * @param _index Auction index the to participate 
      */
     function deleteAuction(uint _index) public onlyOwner {
@@ -185,7 +185,7 @@ contract BuyBack {
     
     /**
      * @notice deleteAuctions delete an Auction
-     * @param _indexes Auction index the to participate 
+     * @param _indexes indexes of the auction in array
      */
     function deleteAuctionMulti(uint[] _indexes) public onlyOwner {
         require(_indexes.length > 0);
@@ -203,6 +203,14 @@ contract BuyBack {
         shouldBurnToken = _burn;
     }
     
+
+    /**
+     * @notice getBurnAddress
+     */
+    function getBurnAddress() public view onlyOwner returns(address) {
+        return burnAddress;
+    }
+
     /**
      * @notice modifyBurnAddress modify address burnt tokens should be sent to
      * @param _burnAddress burn address
@@ -265,7 +273,7 @@ contract BuyBack {
      * @param _token Address of the  token
      * @param _amount Amount of tokens to burn
      */
-    function burnTokens(address _token, uint _amount) public {
+    function burnTokens(address _token, uint _amount) internal {
         // transfer the tokens to address(0)
         require(_amount > 0);
         require(Token(_token).transferFrom(this, address(0), _amount));
@@ -282,7 +290,7 @@ contract BuyBack {
      * @param _burnAddress Address to send burn tokens
      * @param _amount Amount of tokens to burn
      */
-    function burnTokensWithAddress(address _token, address _burnAddress, uint _amount) public {
+    function burnTokensWithAddress(address _token, address _burnAddress, uint _amount) internal {
         // transfer the tokens to address(0)
         require(_amount > 0);
         require(Token(_token).transferFrom(this, _burnAddress, _amount));

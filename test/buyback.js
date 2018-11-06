@@ -8,11 +8,13 @@ const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545")) 
 
 contract("Buyback", accounts => {
       
-    let BuyBackAccount, SecondAccount, buyBack, etherToken, dxProxy, tokenGNO;
+    let BuyBackAccount, SecondAccount, buyBack, etherToken, dxProxy, tokenGNO, SecondBurnAddress;
 
     BuyBackAccount = accounts[0]
     SecondAccount = accounts[1]
     BurnAddress = accounts[3]
+    SecondBurnAddress = accounts[2]
+
 
 
     before (async() => {
@@ -29,16 +31,10 @@ contract("Buyback", accounts => {
 
         it("Should deposit tokens", async() => {
             // approve the buy back contract address to withdraw 1e18 tokens from etherToken
-            console.log(`buyback address ${buyBack.address}`)
-            let transfer = await etherToken.deposit({from: BuyBackAccount, value: 20e18 })
-            console.log({transfer})
-            let approve = await etherToken.approve(buyBack.address, 20e18, {from: BuyBackAccount})
-            console.log({approve})
-            let result = await etherToken.balanceOf(BuyBackAccount)
-            result = result.toNumber() / 10e18
-            console.log({result})
-            let tx = await buyBack.deposit(etherToken.address, 10e18, {from: BuyBackAccount})
-            console.log(tx)
+            await etherToken.deposit({from: BuyBackAccount, value: 20e18 })
+            await etherToken.approve(buyBack.address, 20e18, {from: BuyBackAccount})
+            await etherToken.balanceOf(BuyBackAccount)
+            await buyBack.deposit(etherToken.address, 10e18, {from: BuyBackAccount})
         })
 
         it("Should prevent deposit with amount 0", async() => {
@@ -112,8 +108,6 @@ contract("Buyback", accounts => {
 
         it("Should delete an auction using auction index if its not pariticipated in ", async() => {
             const result = await buyBack.deleteAuction(0, {from: BuyBackAccount});
-            console.log(result.logs[0].args)
-            console.log(result.logs[0].args.amount.toNumber())
 
             assert.equal(result.logs[0].args.auctionIndex, auctionIndexes[0], "Failed to delete auction using index")
             assert.equal(result.logs[0].args.amount, auctionAmounts[0], "Failed to delete auction using index")
@@ -121,13 +115,10 @@ contract("Buyback", accounts => {
 
         it("Should delete multiple auction amount with auction index", async() => {
             const result = await buyBack.deleteAuctionMulti([0, 0], {from: BuyBackAccount});
-            console.log(result.logs)
             let i = 1
             for(let log of result.logs){
-                console.log({log})
                 assert.equal(log.args.auctionIndex, auctionIndexes[i], "Failed to delete auction using index")
                 assert.equal(log.args.amount, auctionAmounts[i], "Failed to delete auction using index")
-                console.log(log.args.amount.toNumber())
                 i++
             }
         })
@@ -140,7 +131,22 @@ contract("Buyback", accounts => {
                 errorThrown = true
             }
             assert.ok(errorThrown, "Should prevent deleting auction with invalid length");
-        })
+        });
+
+        it("Should allow to get burn address", async() => {
+            const address = await buyBack.getBurnAddress({from: BuyBackAccount});
+            assert.equal(address, BurnAddress, "Invalid burn addresses")
+        });
+
+        it("Should allow to modify burn", async() => {
+            await buyBack.modifyBurn(true, {from: BuyBackAccount});
+        });
+
+        it("Should allow to modify burn address", async() => {
+            await buyBack.modifyBurnAddress(SecondBurnAddress, {from: BuyBackAccount});
+            const address = await buyBack.getBurnAddress({from: BuyBackAccount});
+            assert.equal(address, SecondBurnAddress, "Invalid burn addresses")
+        });
 
     })
 })
