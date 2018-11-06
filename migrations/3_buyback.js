@@ -5,13 +5,14 @@ const GNOToken = artifacts.require("TokenGNO")
 
 
 module.exports = function(deployer, network, accounts) {
-    const BuybackOwnerAccount = accounts[0]
     const BurnAddress = accounts[2]
 
     let dxProxy, etherToken, gnoToken
     console.log("working on deploying")
+
     return deployer.then(() => {
       dxProxy = DutchExchangeProxy.deployed()
+      console.log('dxproxy', dxProxy.address)
     }).then(() =>{
       etherToken = EtherToken.deployed()
     }).then(() => {

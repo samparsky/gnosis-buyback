@@ -7,6 +7,7 @@ import "@gnosis.pm/dx-contracts/contracts/Oracle/PriceOracleInterface.sol";
 contract BuyBack {
 
     address public owner;
+    
     // SellToken the token that is sold
     address public sellToken;
     address public buyToken;
@@ -20,10 +21,15 @@ contract BuyBack {
     uint[] auctionIndexes;
     mapping(uint => uint) public auction;
 
-    bool shouldBurnToken;
+    // mapping of a auction id to wether
+    // we currently participating in an auction for
+    // the auction id
+    mapping(uint => bool) public isProcessing;
 
     // BuyToken the token that is bought
     DutchExchange public dx;
+    bool shouldBurnToken;
+
 
     modifier onlyOwner () {
         require(msg.sender == owner);
@@ -127,12 +133,8 @@ contract BuyBack {
     /**
      * @notice getAuctions fetch all the available auctions
      */    
-    function getAuctions() public view returns ( uint[], uint[] ){
-        uint[] auctionAmounts;
-        for ( uint i = 0; i < auctionIndexes.length; i++ ) {
-            auctionAmounts[i] = auction[auctionIndexes[i]];
-        }
-        return ( auctionIndexes, auctionAmounts );
+    function getAuctionIndexes() public view returns (uint[]){
+        return auctionIndexes;
     }
 
     /**
@@ -157,32 +159,39 @@ contract BuyBack {
     
     /**
      * @notice deleteAuction modify the amount for an auction index
-     * @param _auctionIndex Auction index the to participate 
+     * @param _index Auction index the to participate 
      */
-    function deleteAuction(uint _auctionIndex) public onlyOwner {
-        require(auction[_auctionIndex] > 0);
-        uint[] newAuctionIndexes;
-        for(uint i = 0; i < auctionIndexes.length; i++){
-            if(auctionIndexes[i] == _auctionIndex){
-                continue;
+    function deleteAuction(uint _index) public onlyOwner {
+        require(_index < auctionIndexes.length);
+
+        uint auctionIndex = auctionIndexes[_index];
+
+        require(isProcessing[auctionIndex] == false);
+
+        if(auctionIndexes.length == 1){
+            delete auctionIndexes[0];
+        } else {
+            for (uint i = _index; i < auctionIndexes.length-1; i++){
+                auctionIndexes[i] = auctionIndexes[i+1];
             }
-            newAuctionIndexes[i] = auctionIndexes[i];
+            auctionIndexes.length--;
         }
-        auctionIndexes = newAuctionIndexes;
-        uint auctionAmount = auction[_auctionIndex];
-        delete auction[_auctionIndex];
-        emit DeleteAuction(_auctionIndex, auctionAmount);
+
+        uint amount = auction[auctionIndex];
+        delete auction[auctionIndex];
+        emit DeleteAuction(auctionIndex, amount);
     }
     
     
     /**
      * @notice deleteAuctions delete an Auction
-     * @param _auctionIndexes Auction index the to participate 
+     * @param _indexes Auction index the to participate 
      */
-    function deleteAuctions(uint[] _auctionIndexes) public onlyOwner {
-        require(_auctionIndexes.length > 0);
-        for(uint i = 0; i < _auctionIndexes.length; i++) {
-            deleteAuction(_auctionIndexes[i]); 
+    function deleteAuctionMulti(uint[] _indexes) public onlyOwner {
+        require(_indexes.length > 0);
+
+        for(uint i = 0; i < _indexes.length; i++) {
+            deleteAuction(_indexes[i]); 
         }
     }
     

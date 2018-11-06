@@ -2,6 +2,7 @@ const Buyback = artifacts.require("Buyback")
 const TokenGNO = artifacts.require('TokenGNO')
 const EtherToken = artifacts.require("EtherToken")
 const DutchExchangeProxy = artifacts.require("DutchExchangeProxy")
+
 const Web3 = require('web3');
 const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545")) // Hardcoded development port
 
@@ -18,11 +19,14 @@ contract("Buyback", accounts => {
         dxProxy = await DutchExchangeProxy.deployed()
         tokenGNO = await TokenGNO.deployed()
         etherToken = await EtherToken.deployed()
-
-        buyBack = await Buyback.new(dxProxy.address, tokenGNO.address, etherToken.address, BurnAddress, true, [1,2,3], [1e18, 1e18, 1e18], {from: BuyBackAccount})
     })
 
     describe("Test Buyback Implementation", async() => {
+        
+        it("Should create contract", async() => {
+            buyBack = await Buyback.new(dxProxy.address, tokenGNO.address, etherToken.address, BurnAddress, true, [1,2,3], [1e18, 1e18, 1e18], {from: BuyBackAccount})
+        })
+
         it("Should deposit tokens", async() => {
             // approve the buy back contract address to withdraw 1e18 tokens from etherToken
             console.log(`buyback address ${buyBack.address}`)
@@ -59,9 +63,11 @@ contract("Buyback", accounts => {
             assert.ok(errorThrown, "Should prevent deposit with amount 0");
         })
 
+        const auctionIndexes = [1, 2, 3] 
+        const auctionAmounts = [1e17, 1e19, 1e18]
+
         it("Should allow modification of auction amount & index", async () => {
-            let auctionIndexes = [1, 2, 3] 
-            let auctionAmounts =  [1e17, 1e19, 1e18]
+           
             await buyBack.modifyAuctionsMulti(auctionIndexes, auctionAmounts)
         })
 
@@ -89,21 +95,52 @@ contract("Buyback", accounts => {
             assert.ok(errorThrown, "Should prevent modifying auction with invalid length");
         })
 
-        it("Should ", async() => {
+        it("Should get all the created auction indexes", async() => {
+            const result = await buyBack.getAuctionIndexes({from: BuyBackAccount});
+
+            assert.equal(result[0].toNumber(), auctionIndexes[0], "Invalid details")
+            assert.equal(result[1].toNumber(), auctionIndexes[1], "Invalid details")
+            assert.equal(result[2].toNumber(), auctionIndexes[2], "Invalid details")
+        })
+
+        it("Should get the auction amount with auction index", async() => {
+            for(let index in auctionIndexes) {
+                const result = await buyBack.getAuctionAmount(auctionIndexes[index], {from: BuyBackAccount});
+                assert.equal(result.toNumber(), auctionAmounts[index], "Invalid details")
+            }
+        })
+
+        it("Should delete an auction using auction index if its not pariticipated in ", async() => {
+            const result = await buyBack.deleteAuction(0, {from: BuyBackAccount});
+            console.log(result.logs[0].args)
+            console.log(result.logs[0].args.amount.toNumber())
+
+            assert.equal(result.logs[0].args.auctionIndex, auctionIndexes[0], "Failed to delete auction using index")
+            assert.equal(result.logs[0].args.amount, auctionAmounts[0], "Failed to delete auction using index")
+        })
+
+        it("Should delete multiple auction amount with auction index", async() => {
+            const result = await buyBack.deleteAuctionMulti([0, 0], {from: BuyBackAccount});
+            console.log(result.logs)
+            let i = 1
+            for(let log of result.logs){
+                console.log({log})
+                assert.equal(log.args.auctionIndex, auctionIndexes[i], "Failed to delete auction using index")
+                assert.equal(log.args.amount, auctionAmounts[i], "Failed to delete auction using index")
+                console.log(log.args.amount.toNumber())
+                i++
+            }
+        })
+
+        it("Should prevent deleting multiple auction with empty array", async() => {
             let errorThrown = false
             try {
-                let auctionIndexes = [] 
-                let auctionAmounts =  [1e17, 1e19]
-                await buyBack.modifyAuctionsMulti(auctionIndexes, auctionAmounts)
+                await buyBack.deleteAuctionMulti([], {from: BuyBackAccount});
             } catch(e) {
                 errorThrown = true
             }
-            assert.ok(errorThrown, "Should prevent modifying auction with invalid length");
+            assert.ok(errorThrown, "Should prevent deleting auction with invalid length");
         })
-
-
-
-
 
     })
 })
