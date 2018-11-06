@@ -148,5 +148,7 @@ contract("Buyback", accounts => {
             assert.equal(address, SecondBurnAddress, "Invalid burn addresses")
         });
 
+        it("Should allow to pariticipate")
+
     })
 })

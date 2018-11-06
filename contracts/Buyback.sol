@@ -203,7 +203,6 @@ contract BuyBack {
         shouldBurnToken = _burn;
     }
     
-
     /**
      * @notice getBurnAddress
      */
